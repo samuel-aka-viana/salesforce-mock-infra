@@ -1,4 +1,3 @@
-# Use o KubernetesExecutor para que cada tarefa rode num Pod isolado.
 executor: KubernetesExecutor
 
 dags:
