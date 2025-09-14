@@ -1,0 +1,29 @@
+# Use o KubernetesExecutor para que cada tarefa rode num Pod isolado.
+executor: KubernetesExecutor
+
+dags:
+  persistence:
+    enabled: false
+  gitSync:
+    enabled: true
+    repo: "https://github.com/SEU_USUARIO/SEU_REPOSITORIO_DE_DAGS.git"
+    branch: "main"
+
+ingress:
+  web:
+    enabled: true
+    hosts:
+      - host: airflow.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+
+data:
+  postgresql:
+    persistence:
+      enabled: true
+      storageClassName: "local-path"
+      size: 5Gi
+
+fernetKey:
+  generate: true
