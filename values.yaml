@@ -11,18 +11,21 @@ dags:
 ingress:
   web:
     enabled: true
+    ingressClassName: "traefik"
     hosts:
-      - host: airflow.local
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
+      - name: "airflow.local"
+        tls:
+          enabled: false
+    path: "/"
+    pathType: "Prefix"
 
-data:
-  postgresql:
+postgresql:
+  enabled: true
+  primary:
     persistence:
       enabled: true
-      storageClassName: "local-path"
+      storageClass: "local-path"
       size: 5Gi
 
-fernetKey:
-  generate: true
+fernetKeySecretName: "airflow-fernet-key"
+fernetKeySecretKey: "fernet-key"
