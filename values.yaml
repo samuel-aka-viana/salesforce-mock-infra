@@ -6,7 +6,7 @@ dags:
     enabled: false
   gitSync:
     enabled: true
-    repo: "https://github.com/SEU_USUARIO/SEU_REPOSITORIO_DE_DAGS.git"
+    repo: "https://github.com/samuel-aka-viana/salesforce-mock-orquestration.git"
     branch: "main"
 
 ingress:
