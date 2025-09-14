@@ -7,6 +7,9 @@ webserver:
 apiserver:
   enabled: true
   replicas: 1
+  service:
+    type: ClusterIP
+    port: 8080
 
 dags:
   persistence:
@@ -74,59 +77,33 @@ config:
     remote_logging: "False"
   api:
     auth_backends: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
-  kubernetes_executor:
-    namespace: "airflow"
-    pod_template_file: ""
-    worker_container_repository: "apache/airflow"
-    worker_container_tag: "3.0.2"
-    delete_worker_pods: "True"
-    delete_worker_pods_on_failure: "False"
   execution:
     task_execution_enabled: "True"
-  logging:
-    remote_logging: "False"
+  kubernetes_executor:
+    namespace: "airflow"
+    worker_container_repository: "apache/airflow"
+    worker_container_tag: "3.0.6"
+    delete_worker_pods: "True"
+    delete_worker_pods_on_failure: "False"
+  kubernetes:
+    namespace: "airflow"
+    in_cluster: "True"
 
+# VARIÁVEIS DE AMBIENTE MÍNIMAS
 env:
   - name: AIRFLOW__KUBERNETES__NAMESPACE
     value: "airflow"
   - name: AIRFLOW__KUBERNETES__IN_CLUSTER
     value: "True"
-  - name: AIRFLOW__KUBERNETES__CLUSTER_CONTEXT
-    value: ""
-  - name: AIRFLOW__API__AUTH_BACKENDS
-    value: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
   - name: AIRFLOW__EXECUTION__TASK_EXECUTION_ENABLED
     value: "True"
-  - name: AIRFLOW__CORE__REMOTE_LOGGING
-    value: "False"
-  - name: AIRFLOW__LOGGING__REMOTE_LOGGING
-    value: "False"
 
-podTemplate: |
-  apiVersion: v1
-  kind: Pod
-  metadata:
-    name: placeholder-name
-    namespace: airflow
-  spec:
-    serviceAccountName: airflow
-    containers:
-    - name: base
-      image: apache/airflow:3.0.2
-      env:
-      - name: AIRFLOW__KUBERNETES__NAMESPACE
-        value: "airflow"
-      - name: AIRFLOW__KUBERNETES__IN_CLUSTER
-        value: "True"
-      - name: AIRFLOW__EXECUTION__TASK_EXECUTION_ENABLED
-        value: "True"
-      - name: AIRFLOW__CORE__REMOTE_LOGGING
-        value: "False"
-      resources:
-        requests:
-          cpu: "100m"
-          memory: "128Mi"
-        limits:
-          cpu: "500m"
-          memory: "512Mi"
-    restartPolicy: Never
+# CONFIGURAÇÕES ADICIONAIS
+logs:
+  persistence:
+    enabled: false
+
+workers:
+  persistence:
+    enabled: false
+
