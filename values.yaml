@@ -4,6 +4,8 @@ webserver:
   enabled: true
   replicas: 1
 
+webserverSecretKey: "9DNKMLHjpmHYxOiQI8OU_2W6_J-uyZ9EHyDeoX5H99Q"
+
 apiserver:
   enabled: true
   replicas: 1
@@ -37,8 +39,7 @@ postgresql:
       storageClass: "local-path"
       size: 5Gi
 
-fernetKeySecretName: "airflow-fernet-key"
-fernetKeySecretKey: "fernet-key"
+fernetKey: "1gM6cLkmcGASLvvyMMWJZuPA1ikdV5MNXsUQqoOw48I="
 
 defaultUser:
   enabled: true
@@ -68,6 +69,11 @@ rbac:
 serviceAccount:
   create: true
   name: airflow
+
+images:
+  airflow:
+    repository: apache/airflow
+    tag: "3.0.2"
 
 config:
   core:
