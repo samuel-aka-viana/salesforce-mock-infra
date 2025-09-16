@@ -88,11 +88,10 @@ config:
     remote_logging: "False"
     executor: "KubernetesExecutor"
     # FIX: Configuração da URL da execution API (corrige connection refused)
-    execution_api_server_url: "http://airflow-api-server:8080/execution/"
+    execution_api_server_url: "http://airflow-api-server.airflow.svc.cluster.local:8080/execution/"
   api:
+    base_url: "http://airflow-api-server.airflow.svc.cluster.local:8080"
     auth_backends: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
-    # FIX: URL base da API para task communication
-    base_url: "http://airflow-api-server:8080"
   kubernetes_executor:
     namespace: "airflow"
     pod_template_file: ""
@@ -127,7 +126,7 @@ env:
     value: "False"
   # FIX: URL correta da execution API (resolve connection refused)
   - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
-    value: "http://airflow-api-server:8080/execution/"
+    value: "http://airflow-api-server.airflow.svc.cluster.local:8080/execution/"
   # FIX: URL base da API
   - name: AIRFLOW__API__BASE_URL
     value: "http://airflow-api-server:8080"
@@ -153,18 +152,15 @@ podTemplate: |
       - name: AIRFLOW__KUBERNETES__IN_CLUSTER
         value: "True"
       - name: AIRFLOW__EXECUTION__TASK_EXECUTION_ENABLED
-        value: "True"
+        value: "False"
       - name: AIRFLOW__CORE__REMOTE_LOGGING
         value: "False"
       - name: AIRFLOW__CORE__EXECUTOR
         value: "KubernetesExecutor"
-      # FIX: Configurações corretas da execution API no pod template
-      - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
-        value: "http://airflow-api-server:8080/execution/"
-      - name: AIRFLOW__API__BASE_URL
-        value: "http://airflow-api-server:8080"
       - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
         value: "airflow"
+      - name: AIRFLOW__KUBERNETES__WORKER_API_SERVER
+        value: "http://airflow-api-server.airflow.svc.cluster.local:8080"  # Point to the correct service
       resources:
         requests:
           cpu: "100m"
@@ -172,13 +168,4 @@ podTemplate: |
         limits:
           cpu: "1000m"
           memory: "1Gi"
-      volumeMounts:
-      - name: airflow-config
-        mountPath: /opt/airflow/airflow.cfg
-        subPath: airflow.cfg
-        readOnly: true
-    volumes:
-    - name: airflow-config
-      configMap:
-        name: airflow-config
     restartPolicy: Never

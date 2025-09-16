@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: airflow-webserver
+  name: airflow-api-server
   namespace: airflow
   annotations:
     kubernetes.io/ingress.class: traefik
@@ -14,6 +14,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: airflow-webserver
+            name: airflow-api-server
             port:
               number: 8080
