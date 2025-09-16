@@ -6,6 +6,9 @@ webserver:
   enabled: true
   replicas: 1
 
+components:
+  webserver: true
+
 scheduler:
   enabled: true
   replicas: 1
