@@ -1,5 +1,3 @@
-
-
 executor: KubernetesExecutor
 
 webserver:
@@ -84,13 +82,17 @@ serviceAccount:
   create: true
   name: airflow
 
-# Configurações específicas para Airflow 3.0.2
+# Configurações corrigidas para Airflow 3.0.2
 config:
   core:
     remote_logging: "False"
     executor: "KubernetesExecutor"
+    # FIX: Configuração da URL da execution API (corrige connection refused)
+    execution_api_server_url: "http://airflow-api-server:8080/execution/"
   api:
     auth_backends: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+    # FIX: URL base da API para task communication
+    base_url: "http://airflow-api-server:8080"
   kubernetes_executor:
     namespace: "airflow"
     pod_template_file: ""
@@ -98,14 +100,18 @@ config:
     worker_container_tag: "3.0.2"
     delete_worker_pods: "True"
     delete_worker_pods_on_failure: "False"
-    # Configurações específicas para 3.0.2
     worker_container_image_pull_policy: "IfNotPresent"
     multi_namespace_mode: "False"
+    # FIX: Service account para worker pods
+    worker_service_account_name: "airflow"
+  # FIX: Configuração correta da execution API (substitui as configurações anteriores)
   execution:
+    # Remover enable_api_server, api_server_host, api_server_port (não existem no 3.0.2)
     task_execution_enabled: "True"
   logging:
     remote_logging: "False"
 
+# FIX: Variáveis de ambiente corrigidas para Airflow 3.0.2
 env:
   - name: AIRFLOW__KUBERNETES__NAMESPACE
     value: "airflow"
@@ -119,8 +125,17 @@ env:
     value: "False"
   - name: AIRFLOW__LOGGING__REMOTE_LOGGING
     value: "False"
+  # FIX: URL correta da execution API (resolve connection refused)
+  - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
+    value: "http://airflow-api-server:8080/execution/"
+  # FIX: URL base da API
+  - name: AIRFLOW__API__BASE_URL
+    value: "http://airflow-api-server:8080"
+  # FIX: Service account para worker pods
+  - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
+    value: "airflow"
 
-# Pod template otimizado para Airflow 3.0.2
+# FIX: Pod template corrigido para Airflow 3.0.2
 podTemplate: |
   apiVersion: v1
   kind: Pod
@@ -143,6 +158,13 @@ podTemplate: |
         value: "False"
       - name: AIRFLOW__CORE__EXECUTOR
         value: "KubernetesExecutor"
+      # FIX: Configurações corretas da execution API no pod template
+      - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
+        value: "http://airflow-api-server:8080/execution/"
+      - name: AIRFLOW__API__BASE_URL
+        value: "http://airflow-api-server:8080"
+      - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
+        value: "airflow"
       resources:
         requests:
           cpu: "100m"
