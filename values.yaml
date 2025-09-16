@@ -1,14 +1,21 @@
+
+
 executor: KubernetesExecutor
 
 webserver:
   enabled: true
   replicas: 1
 
-webserverSecretKey: "9DNKMLHjpmHYxOiQI8OU_2W6_J-uyZ9EHyDeoX5H99Q"
-
-apiserver:
+scheduler:
   enabled: true
   replicas: 1
+
+triggerer:
+  enabled: true
+  replicas: 1
+
+defaultAirflowRepository: apache/airflow
+defaultAirflowTag: "3.0.2"
 
 dags:
   persistence:
@@ -39,7 +46,11 @@ postgresql:
       storageClass: "local-path"
       size: 5Gi
 
-fernetKey: "1gM6cLkmcGASLvvyMMWJZuPA1ikdV5MNXsUQqoOw48I="
+fernetKeySecretName: "airflow-fernet-key"
+fernetKeySecretKey: "fernet-key"
+
+webserverSecretKeySecretName: "airflow-webserver-secret-key"
+webserverSecretKey: "webserver-secret-key"
 
 defaultUser:
   enabled: true
@@ -70,14 +81,11 @@ serviceAccount:
   create: true
   name: airflow
 
-images:
-  airflow:
-    repository: apache/airflow
-    tag: "3.0.2"
-
+# Configurações específicas para Airflow 3.0.2
 config:
   core:
     remote_logging: "False"
+    executor: "KubernetesExecutor"
   api:
     auth_backends: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
   kubernetes_executor:
@@ -87,6 +95,9 @@ config:
     worker_container_tag: "3.0.2"
     delete_worker_pods: "True"
     delete_worker_pods_on_failure: "False"
+    # Configurações específicas para 3.0.2
+    worker_container_image_pull_policy: "IfNotPresent"
+    multi_namespace_mode: "False"
   execution:
     task_execution_enabled: "True"
   logging:
@@ -97,8 +108,6 @@ env:
     value: "airflow"
   - name: AIRFLOW__KUBERNETES__IN_CLUSTER
     value: "True"
-  - name: AIRFLOW__KUBERNETES__CLUSTER_CONTEXT
-    value: ""
   - name: AIRFLOW__API__AUTH_BACKENDS
     value: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
   - name: AIRFLOW__EXECUTION__TASK_EXECUTION_ENABLED
@@ -108,6 +117,7 @@ env:
   - name: AIRFLOW__LOGGING__REMOTE_LOGGING
     value: "False"
 
+# Pod template otimizado para Airflow 3.0.2
 podTemplate: |
   apiVersion: v1
   kind: Pod
@@ -128,11 +138,22 @@ podTemplate: |
         value: "True"
       - name: AIRFLOW__CORE__REMOTE_LOGGING
         value: "False"
+      - name: AIRFLOW__CORE__EXECUTOR
+        value: "KubernetesExecutor"
       resources:
         requests:
           cpu: "100m"
-          memory: "128Mi"
+          memory: "256Mi"
         limits:
-          cpu: "500m"
-          memory: "512Mi"
+          cpu: "1000m"
+          memory: "1Gi"
+      volumeMounts:
+      - name: airflow-config
+        mountPath: /opt/airflow/airflow.cfg
+        subPath: airflow.cfg
+        readOnly: true
+    volumes:
+    - name: airflow-config
+      configMap:
+        name: airflow-config
     restartPolicy: Never
