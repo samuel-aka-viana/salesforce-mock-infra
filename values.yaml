@@ -85,10 +85,9 @@ serviceAccount:
 config:
   core:
     remote_logging: "False"
-    executor: "KubernetesExecutor"
     execution_api_server_url: "http://airflow-api-server.airflow.svc.cluster.local:8080/execution/"
   api:
-    base_url: "http://airflow-api-server.airflow.svc.cluster.local:8080"
+    base_url: "http://airflow.local"
     auth_backends: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
   kubernetes_executor:
     namespace: "airflow"
@@ -111,6 +110,8 @@ env:
     value: "airflow"
   - name: AIRFLOW__KUBERNETES__IN_CLUSTER
     value: "True"
+  - name: AIRFLOW__KUBERNETES_EXECUTOR__POD_TEMPLATE_FILE
+    value: ""
   - name: AIRFLOW__API__AUTH_BACKENDS
     value: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
   - name: AIRFLOW__EXECUTION__TASK_EXECUTION_ENABLED
@@ -120,9 +121,9 @@ env:
   - name: AIRFLOW__LOGGING__REMOTE_LOGGING
     value: "False"
   - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
-    value: "http://airflow-api-server.airflow.svc.cluster.local:8080/execution/"
+    value: "http://airflow.local/execution/"
   - name: AIRFLOW__API__BASE_URL
-    value: "http://airflow-api-server.airflow.svc.cluster.local:8080"
+    value: "http://airflow.local"
   - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
     value: "airflow"
   - name: AIRFLOW__KUBERNETES__WORKER_API_SERVER
@@ -136,33 +137,71 @@ podTemplate: |
     namespace: airflow
   spec:
     serviceAccountName: airflow
-    containers:
-    - name: base
-      image: apache/airflow:3.0.2
-      env:
-      - name: AIRFLOW__KUBERNETES__NAMESPACE
-        value: "airflow"
-      - name: AIRFLOW__KUBERNETES__IN_CLUSTER
-        value: "True"
-      - name: AIRFLOW__EXECUTION__TASK_EXECUTION_ENABLED
-        value: "True"
-      - name: AIRFLOW__CORE__REMOTE_LOGGING
-        value: "False"
-      - name: AIRFLOW__CORE__EXECUTOR
-        value: "KubernetesExecutor"
-      - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
-        value: "airflow"
-      - name: AIRFLOW__KUBERNETES__WORKER_API_SERVER
-        value: "http://airflow-api-server.airflow.svc.cluster.local:8080"
-      - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
-        value: "http://airflow-api-server.airflow.svc.cluster.local:8080/execution/"
-      - name: AIRFLOW__API__BASE_URL
-        value: "http://airflow-api-server.airflow.svc.cluster.local:8080"
-      resources:
-        requests:
-          cpu: "100m"
-          memory: "256Mi"
-        limits:
-          cpu: "1000m"
-          memory: "1Gi"
     restartPolicy: Never
+    volumes:
+      - name: dags
+        emptyDir: {}
+    containers:
+      - name: base
+        image: apache/airflow:3.0.2
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: AIRFLOW__KUBERNETES__NAMESPACE
+            value: "airflow"
+          - name: AIRFLOW__KUBERNETES__IN_CLUSTER
+            value: "True"
+          - name: AIRFLOW__EXECUTION__TASK_EXECUTION_ENABLED
+            value: "True"
+          - name: AIRFLOW__CORE__REMOTE_LOGGING
+            value: "False"
+          - name: AIRFLOW__CORE__EXECUTOR
+            value: "LocalExecutor"  # Executor dentro do pod worker (padrão para K8sExecutor workers)
+          - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
+            value: "airflow"
+          - name: AIRFLOW__KUBERNETES__WORKER_API_SERVER
+            value: "http://airflow-api-server.airflow.svc.cluster.local:8080"
+          - name: AIRFLOW__CORE__EXECUTION_API_SERVER_URL
+            value: "http://airflow-api-server.airflow.svc.cluster.local:8080/execution/"
+          - name: AIRFLOW__API__BASE_URL
+            value: "http://airflow-api-server.airflow.svc.cluster.local:8080"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        volumeMounts:
+          - name: dags
+            mountPath: /opt/airflow/dags
+            subPath: repo/dags
+      - name: git-sync
+        image: registry.k8s.io/git-sync/git-sync:v4.2.3
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: GITSYNC_REPO
+            value: "https://github.com/samuel-aka-viana/salesforce-mock-orquestration.git"
+          - name: GITSYNC_BRANCH
+            value: "main"
+          - name: GITSYNC_ROOT
+            value: /git
+          - name: GITSYNC_DEST
+            value: "repo"
+          - name: GITSYNC_PERIOD
+            value: "60s"
+          - name: GITSYNC_ONE_TIME
+            value: "false"
+          - name: GITSYNC_DEPTH
+            value: "1"
+          - name: GITSYNC_MAX_FAILURES
+            value: "0"
+        volumeMounts:
+          - name: dags
+            mountPath: /git
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m" 
+            memory: "512Mi"
